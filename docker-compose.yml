@@ -1,0 +1,130 @@
+x-laravel-env: &laravel-env
+  APP_ENV: ${APP_ENV:-local}
+  APP_DEBUG: ${APP_DEBUG:-true}
+  APP_URL: ${DOCKER_APP_URL:-http://localhost:8000}
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: 3306
+  DB_DATABASE: ${MYSQL_DATABASE:-healthtrack}
+  DB_USERNAME: ${MYSQL_USER:-healthtrack}
+  DB_PASSWORD: ${MYSQL_PASSWORD:-secret}
+  REDIS_CLIENT: phpredis
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  REDIS_PASSWORD: ${DOCKER_REDIS_PASSWORD:-}
+  CACHE_STORE: redis
+  QUEUE_CONNECTION: redis
+  SESSION_DRIVER: file
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: healthtrack-app
+    restart: unless-stopped
+    command: ["php-fpm"]
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    environment: *laravel-env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - healthtrack-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: healthtrack-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-8000}:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - healthtrack-network
+
+  mysql:
+    image: mysql:8
+    container_name: healthtrack-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-healthtrack}
+      MYSQL_USER: ${MYSQL_USER:-healthtrack}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - healthtrack-network
+
+  redis:
+    image: redis:alpine
+    container_name: healthtrack-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - healthtrack-network
+
+  queue-worker:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: healthtrack-queue-worker
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: ["php", "artisan", "queue:work", "redis", "--queue=wellness,notifications,analytics"]
+    volumes:
+      - ./:/var/www/html
+    environment: *laravel-env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - healthtrack-network
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: healthtrack-scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: sh -c "while true; do php artisan schedule:run; sleep 60; done"
+    volumes:
+      - ./:/var/www/html
+    environment: *laravel-env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - healthtrack-network
+
+volumes:
+  mysql-data:
+
+networks:
+  healthtrack-network:
+    name: healthtrack-network
+    driver: bridge
