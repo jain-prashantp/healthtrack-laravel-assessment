@@ -1,11 +1,12 @@
 <?php
 
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -49,6 +50,23 @@ return Application::configure(basePath: dirname(__DIR__))
                         'authorization' => ['This action is unauthorized.'],
                     ],
                 ], 403);
+            }
+        });
+
+        $exceptions->render(function (TooManyRequestsHttpException $exception, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'meta' => [
+                        'api_version' => 'v1',
+                        'pagination' => null,
+                        'cache_hit' => false,
+                    ],
+                    'errors' => [
+                        'rate_limit' => ['Too many requests. Please try again later.'],
+                    ],
+                ], 429);
             }
         });
     })->create();
