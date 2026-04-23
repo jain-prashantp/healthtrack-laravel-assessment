@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Auth;
 use App\Http\Controllers\Api\ApiController;
 use App\Http\Requests\Api\V1\Auth\LoginRequest;
 use App\Http\Requests\Api\V1\Auth\RegisterRequest;
+use App\Jobs\EnrichPatientProfileJob;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,8 @@ class AuthController extends ApiController
             'is_active' => true,
             'assigned_doctor_id' => null,
         ]);
+
+        EnrichPatientProfileJob::dispatch($user->id);
 
         $token = $user->createToken('auth-token')->plainTextToken;
 

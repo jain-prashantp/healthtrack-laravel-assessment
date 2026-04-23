@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api\V1\Patient;
 
 use App\Http\Controllers\Api\ApiController;
 use App\Http\Requests\Api\V1\Patient\StorePatientCheckinRequest;
+use App\Jobs\AnalyzeMoodAlertJob;
+use App\Jobs\CheckHolidayJob;
+use App\Jobs\EnrichCheckinWeatherJob;
 use App\Models\WellnessCheckin;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,6 +32,10 @@ class PatientCheckinController extends ApiController
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
+
+        EnrichCheckinWeatherJob::dispatch($checkin->id);
+        CheckHolidayJob::dispatch($checkin->id);
+        AnalyzeMoodAlertJob::dispatch($checkin->id);
 
         return $this->successResponse([
             'checkin' => $checkin,

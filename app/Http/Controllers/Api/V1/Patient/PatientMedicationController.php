@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Patient;
 
 use App\Http\Controllers\Api\ApiController;
 use App\Http\Requests\Api\V1\Patient\StorePatientMedicationRequest;
+use App\Jobs\FetchDrugInfoJob;
 use App\Models\PatientMedication;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,8 @@ class PatientMedicationController extends ApiController
             'fda_warnings' => null,
             'fda_data_fetched_at' => null,
         ]);
+
+        FetchDrugInfoJob::dispatch($medication->id);
 
         return $this->successResponse([
             'medication' => $medication,
