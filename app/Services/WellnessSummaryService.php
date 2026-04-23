@@ -8,10 +8,13 @@ use App\Models\WellnessCheckin;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 
 class WellnessSummaryService
 {
+    public function __construct(private readonly ResilientCacheService $cache)
+    {
+    }
+
     public function cacheKey(int $doctorId, int $patientId): string
     {
         return sprintf('wellness:summary:%d:%d', $doctorId, $patientId);
@@ -19,7 +22,7 @@ class WellnessSummaryService
 
     public function forget(int $doctorId, int $patientId): void
     {
-        Cache::store('redis')->forget($this->cacheKey($doctorId, $patientId));
+        $this->cache->forget($this->cacheKey($doctorId, $patientId), 'redis');
     }
 
     public function forgetForPatient(User $patient): void
@@ -36,10 +39,11 @@ class WellnessSummaryService
      */
     public function getSummary(User $doctor, User $patient): array
     {
-        return Cache::store('redis')->remember(
+        return $this->cache->remember(
             $this->cacheKey($doctor->id, $patient->id),
             now()->addHour(),
             fn () => $this->buildSummary($doctor, $patient),
+            'redis',
         );
     }
 

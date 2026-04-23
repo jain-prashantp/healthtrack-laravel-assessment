@@ -3,17 +3,21 @@
 namespace App\Services\ExternalApis;
 
 use App\Models\ApiCallLog;
+use App\Services\ResilientCacheService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
 abstract class BaseApiService
 {
     private const NULL_CACHE_SENTINEL = '__healthtrack_null__';
+
+    public function __construct(protected readonly ResilientCacheService $cache)
+    {
+    }
 
     abstract protected function apiConfigKey(): string;
 
@@ -30,8 +34,10 @@ abstract class BaseApiService
         $cacheKey ??= $this->cacheKey($endpoint, $query);
         $cacheTtl ??= $this->cacheTtl();
 
-        if (Cache::has($cacheKey)) {
-            $cachedPayload = Cache::get($cacheKey);
+        $cached = $this->cache->read($cacheKey, 'redis');
+
+        if ($cached['hit']) {
+            $cachedPayload = $cached['value'];
             $isCachedNull = is_array($cachedPayload) && ($cachedPayload[self::NULL_CACHE_SENTINEL] ?? false);
 
             $this->logApiCall(
@@ -54,7 +60,7 @@ abstract class BaseApiService
 
             if ($response->status() === 404) {
                 if ($cacheNull) {
-                    Cache::put($cacheKey, [self::NULL_CACHE_SENTINEL => true], $cacheTtl);
+                    $this->cache->put($cacheKey, [self::NULL_CACHE_SENTINEL => true], $cacheTtl, 'redis');
                 }
 
                 $this->logApiCall(
@@ -74,7 +80,7 @@ abstract class BaseApiService
             $payload = $response->json();
             $normalizedPayload = is_array($payload) ? $payload : ['data' => $payload];
 
-            Cache::put($cacheKey, $normalizedPayload, $cacheTtl);
+            $this->cache->put($cacheKey, $normalizedPayload, $cacheTtl, 'redis');
 
             $this->logApiCall(
                 endpoint: $endpoint,
