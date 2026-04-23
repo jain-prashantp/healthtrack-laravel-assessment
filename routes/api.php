@@ -1,12 +1,15 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Admin\AdminSystemController;
+use App\Http\Controllers\Api\V1\Admin\AdminUserController;
 use App\Http\Controllers\Api\V1\Doctor\DoctorAlertController;
 use App\Http\Controllers\Api\V1\Doctor\DoctorPatientController;
 use App\Http\Controllers\Api\V1\Patient\PatientAlertController;
 use App\Http\Controllers\Api\V1\Patient\PatientCheckinController;
 use App\Http\Controllers\Api\V1\Patient\PatientMedicationController;
 use App\Http\Controllers\Api\V1\Patient\PatientProfileController;
+use App\Http\Middleware\EnsureAdminUser;
 use App\Http\Middleware\EnsureDoctorUser;
 use App\Http\Middleware\EnsurePatientUser;
 use Illuminate\Support\Facades\Route;
@@ -59,5 +62,16 @@ Route::prefix('v1')->group(function () {
             Route::get('/alerts', [DoctorAlertController::class, 'index'])->name('api.v1.doctor.alerts.index');
             Route::put('/alerts/{id}/read', [DoctorAlertController::class, 'markRead'])
                 ->name('api.v1.doctor.alerts.read');
+        });
+
+    Route::middleware(['auth:sanctum', EnsureAdminUser::class])
+        ->prefix('admin')
+        ->group(function () {
+            Route::post('/users/{id}/assign-doctor', [AdminUserController::class, 'assignDoctor'])
+                ->name('api.v1.admin.users.assign-doctor');
+            Route::get('/api-logs', [AdminSystemController::class, 'apiLogs'])
+                ->name('api.v1.admin.api-logs.index');
+            Route::get('/queue-stats', [AdminSystemController::class, 'queueStats'])
+                ->name('api.v1.admin.queue-stats.show');
         });
 });
