@@ -56,6 +56,7 @@
 - Use API Resources when response shaping becomes non-trivial.
 - Keep error handling predictable and Laravel-native.
 - Do not invent extra endpoints, filters, or payload fields beyond the assessment without a clear requirement.
+- Keep `postman/HealthTrack.postman_collection.json` and `postman/HealthTrack.local.postman_environment.json` in sync whenever API endpoints, request bodies, auth requirements, or example payloads are added or changed.
 
 ## 7. Queue / Cache / Scheduler Rules
 
