@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\WellnessCheckin;
 use App\Services\ExternalApis\HolidayService;
+use App\Services\WellnessSummaryService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -29,7 +30,7 @@ class CheckHolidayJob implements ShouldQueue
         $this->onQueue('wellness');
     }
 
-    public function handle(HolidayService $holidayService): void
+    public function handle(HolidayService $holidayService, WellnessSummaryService $wellnessSummaryService): void
     {
         if (! config('wellness.holiday_stress_flag_enabled')) {
             return;
@@ -50,6 +51,8 @@ class CheckHolidayJob implements ShouldQueue
             'is_holiday' => $holiday !== null,
             'holiday_name' => $holiday['local_name'] ?? $holiday['name'] ?? null,
         ]);
+
+        $wellnessSummaryService->forgetForPatient($checkin->patient);
     }
 
     public function failed(?Throwable $exception): void

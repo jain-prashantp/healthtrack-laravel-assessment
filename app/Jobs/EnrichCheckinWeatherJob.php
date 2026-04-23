@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\WellnessCheckin;
 use App\Services\ExternalApis\WeatherService;
+use App\Services\WellnessSummaryService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -32,7 +33,7 @@ class EnrichCheckinWeatherJob implements ShouldBeUnique, ShouldQueue
         $this->onQueue('wellness');
     }
 
-    public function handle(WeatherService $weatherService): void
+    public function handle(WeatherService $weatherService, WellnessSummaryService $wellnessSummaryService): void
     {
         if (! config('wellness.weather_correlation_enabled')) {
             return;
@@ -62,6 +63,8 @@ class EnrichCheckinWeatherJob implements ShouldBeUnique, ShouldQueue
             'weather_data' => $weatherData,
             'weather_fetched_at' => now(),
         ]);
+
+        $wellnessSummaryService->forgetForPatient($checkin->patient);
     }
 
     public function uniqueId(): string

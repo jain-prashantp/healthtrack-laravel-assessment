@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\PatientMedication;
 use App\Services\ExternalApis\DrugInfoService;
+use App\Services\WellnessSummaryService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -32,11 +33,11 @@ class FetchDrugInfoJob implements ShouldBeUnique, ShouldQueue
         $this->onQueue('wellness');
     }
 
-    public function handle(DrugInfoService $drugInfoService): void
+    public function handle(DrugInfoService $drugInfoService, WellnessSummaryService $wellnessSummaryService): void
     {
-        $medication = PatientMedication::query()->find($this->medicationId);
+        $medication = PatientMedication::query()->with('patient')->find($this->medicationId);
 
-        if (! $medication) {
+        if (! $medication || ! $medication->patient) {
             return;
         }
 
@@ -46,6 +47,8 @@ class FetchDrugInfoJob implements ShouldBeUnique, ShouldQueue
             'fda_warnings' => $drugInfo['warnings'] ?? null,
             'fda_data_fetched_at' => now(),
         ]);
+
+        $wellnessSummaryService->forgetForPatient($medication->patient);
     }
 
     public function uniqueId(): string

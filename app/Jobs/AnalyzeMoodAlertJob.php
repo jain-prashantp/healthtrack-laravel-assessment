@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\WellnessAlert;
 use App\Models\WellnessCheckin;
+use App\Services\WellnessSummaryService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -29,7 +30,7 @@ class AnalyzeMoodAlertJob implements ShouldQueue
         $this->onQueue('analytics');
     }
 
-    public function handle(): void
+    public function handle(WellnessSummaryService $wellnessSummaryService): void
     {
         $checkin = WellnessCheckin::query()->with('patient')->find($this->checkinId);
 
@@ -67,6 +68,8 @@ class AnalyzeMoodAlertJob implements ShouldQueue
             'is_read' => false,
             'read_at' => null,
         ]);
+
+        $wellnessSummaryService->forgetForPatient($checkin->patient);
     }
 
     public function failed(?Throwable $exception): void

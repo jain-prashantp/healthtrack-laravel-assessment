@@ -8,13 +8,14 @@ use App\Jobs\AnalyzeMoodAlertJob;
 use App\Jobs\CheckHolidayJob;
 use App\Jobs\EnrichCheckinWeatherJob;
 use App\Models\WellnessCheckin;
+use App\Services\WellnessSummaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class PatientCheckinController extends ApiController
 {
-    public function store(StorePatientCheckinRequest $request): JsonResponse
+    public function store(StorePatientCheckinRequest $request, WellnessSummaryService $wellnessSummaryService): JsonResponse
     {
         Gate::authorize('create', WellnessCheckin::class);
 
@@ -32,6 +33,8 @@ class PatientCheckinController extends ApiController
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
+
+        $wellnessSummaryService->forgetForPatient($request->user());
 
         EnrichCheckinWeatherJob::dispatch($checkin->id);
         CheckHolidayJob::dispatch($checkin->id);
