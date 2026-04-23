@@ -73,6 +73,22 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'api_calls' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/api-calls.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
+        'wellness_alerts' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/wellness-alerts.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),
