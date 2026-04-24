@@ -1,66 +1,231 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# HealthTrack Patient Wellness Portal
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Project overview
 
-## About Laravel
+HealthTrack is a Laravel 11 technical assessment project for a patient wellness portal. It includes role-based API flows for patients, doctors, and admins, plus async enrichment jobs, scheduled analytics, and Dockerized local development.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Tech stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Laravel 11
+- PHP 8.2
+- MySQL 8
+- Redis
+- Laravel Sanctum
+- Docker Compose
+- Nginx
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Implemented feature summary
 
-## Learning Laravel
+- Sanctum token authentication with register, login, and logout endpoints
+- Patient APIs for profile management, wellness check-ins, medications, and alerts
+- Doctor APIs for assigned patients, patient wellness summaries, check-in history, medications, and unread alerts
+- Admin APIs for doctor assignment, API call logs, and queue stats
+- External API service layer for country, weather, holiday, and drug info lookups
+- Async enrichment jobs for patient profile, weather, holiday checks, mood alerts, and medication enrichment
+- Scheduled jobs for missed check-in alerts and weekly analytics reports
+- Redis-first caching with resilient fallback for key cache-backed reads
+- Postman collection and local environment for manual API verification
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Local setup instructions
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+1. Copy the environment file:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+cp .env.example .env
+```
 
-## Laravel Sponsors
+2. Start the containers:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+docker compose up --build
+```
 
-### Premium Partners
+3. In a second terminal, generate the application key:
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+```bash
+docker compose exec app php artisan key:generate
+```
 
-## Contributing
+4. Run the database migrations and seed demo data:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+docker compose exec app php artisan migrate --seed
+```
 
-## Code of Conduct
+The API will be available at `http://localhost:8000`.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Docker startup steps
 
-## Security Vulnerabilities
+Main startup command:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+docker compose up --build
+```
 
-## License
+If you prefer detached mode:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+docker compose up --build -d
+```
+
+Included services:
+
+- `app`
+- `nginx`
+- `mysql`
+- `redis`
+- `queue-worker`
+- `scheduler`
+
+## Database migrate/seed commands
+
+Run initial migrations and seed demo data:
+
+```bash
+docker compose exec app php artisan migrate --seed
+```
+
+If you want a clean reset:
+
+```bash
+docker compose exec app php artisan migrate:fresh --seed
+```
+
+## Queue worker command
+
+The Docker setup already includes a `queue-worker` service that runs automatically.
+
+Manual equivalent command:
+
+```bash
+docker compose exec app php artisan queue:work redis --queue=wellness,notifications,analytics
+```
+
+## Scheduler note / how scheduled jobs are registered
+
+The Docker setup includes a `scheduler` service that runs:
+
+```bash
+php artisan schedule:run
+```
+
+every 60 seconds in a loop.
+
+Registered scheduled jobs:
+
+- `DailyMissedCheckinAlertJob` at 08:00 AM daily
+- `WeeklyAnalyticsReportJob` at 07:00 AM every Monday
+
+Useful scheduler checks:
+
+```bash
+docker compose exec app php artisan schedule:list
+```
+
+```bash
+docker compose exec app php artisan schedule:run
+```
+
+## Postman import instructions
+
+Postman assets are in the `/postman` directory:
+
+- `postman/HealthTrack.postman_collection.json`
+- `postman/HealthTrack.local.postman_environment.json`
+
+To use them:
+
+1. Open Postman
+2. Import both files
+3. Select the `HealthTrack Local` environment
+4. Start with an auth request to obtain a token
+
+The environment is configured for local Docker access at `http://localhost:8000`.
+
+## Seeded credentials
+
+All seeded users use the same password:
+
+```text
+Password@123
+```
+
+Users:
+
+- `admin@healthtrack.test` - admin
+- `doctor@healthtrack.test` - doctor
+- `doctor2@healthtrack.test` - doctor
+- `patient1@healthtrack.test` - patient
+- `patient2@healthtrack.test` - patient
+- `patient3@healthtrack.test` - patient
+- `patient4@healthtrack.test` - patient
+- `patient5@healthtrack.test` - patient
+
+## Main API groups
+
+- `/api/v1/auth`
+  - register, login, logout
+- `/api/v1/patient`
+  - profile, check-ins, medications, alerts
+- `/api/v1/doctor`
+  - assigned patients, wellness summary, patient check-ins, patient medications, alerts
+- `/api/v1/admin`
+  - assign doctor, API logs, queue stats
+
+## Useful verification commands
+
+Show the current API routes:
+
+```bash
+docker compose exec app php artisan route:list
+```
+
+Show only auth routes:
+
+```bash
+docker compose exec app php artisan route:list --path=api/v1/auth
+```
+
+Show only patient routes:
+
+```bash
+docker compose exec app php artisan route:list --path=api/v1/patient
+```
+
+Show only doctor routes:
+
+```bash
+docker compose exec app php artisan route:list --path=api/v1/doctor
+```
+
+Show only admin routes:
+
+```bash
+docker compose exec app php artisan route:list --path=api/v1/admin
+```
+
+Watch the queue worker logs:
+
+```bash
+docker compose logs -f queue-worker
+```
+
+Check scheduler registration:
+
+```bash
+docker compose exec app php artisan schedule:list
+```
+
+Inspect recent API call logs from the database:
+
+```bash
+docker compose exec app php artisan tinker --execute="dump(App\Models\ApiCallLog::latest()->take(10)->get(['api_name','endpoint','response_status','was_cached'])->toArray())"
+```
+
+## Notes / assumptions
+
+- Registration is public but always creates a patient user.
+- Doctor-patient assignment is intentionally simplified to a single `assigned_doctor_id` on the patient record.
+- External API enrichment is asynchronous and designed to fail gracefully without blocking the main patient or auth flows.
+- Redis is the primary cache and queue backend in Docker, with graceful cache fallback implemented for key cache-backed reads.
+- More detailed implementation trade-offs are documented in `DECISIONS.md`.
