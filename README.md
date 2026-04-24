@@ -103,6 +103,8 @@ docker compose exec app php artisan queue:work redis --queue=wellness,notificati
 
 ## Scheduler note / how scheduled jobs are registered
 
+The jobs are scheduled in `routes/console.php` to follow Laravel 11 standerd.
+
 The Docker setup includes a `scheduler` service that runs:
 
 ```bash

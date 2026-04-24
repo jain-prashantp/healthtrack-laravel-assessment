@@ -7,7 +7,7 @@
 - I tried to keep controllers thin, used Form Requests for validation, policies/gates for authorization, and small service classes for reusable logic. This made the code easier to follow and easier to explain.
 - I placed external integrations behind dedicated services like `CountryService`, `WeatherService`, `HolidayService`, and `DrugInfoService` using Laravel HTTP Client. This kept API calls out of controllers and jobs and centralized config, caching, and logging.
 - I used queue jobs for enrichment and analysis work that should not block the main user action, such as patient profile enrichment, weather enrichment, holiday detection, mood alert creation, medication enrichment, missed check-in alerts, and weekly analytics.
-- I kept doctor-patient assignment simple with `users.assigned_doctor_id` instead of introducing a separate mapping table. For this assessment, that felt like the most practical choice and was easy to work with across the required flows.
+- Since this project follows the Laravel 11 streamlined structure, scheduled jobs are registered in `routes/console.php` rather than the older `app/Console/Kernel.php` style.
 - I used Redis-first caching for external API responses and doctor wellness summaries, with a centralized fallback to database cache so cache failures would not break the app.
 - I maintained a Postman collection during development so the implemented endpoints stayed easy to test and review.
 
