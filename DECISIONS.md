@@ -37,6 +37,12 @@
 - Improve normalization of external API responses with stronger mapping and handling around weather, holidays, and drug data.
 - Refine summary cache invalidation and potentially move more analytics precomputation into dedicated reporting flows if the system needed to scale further.
 - Add a more formal API resource/documentation layer if this were evolving beyond an assessment project.
+- Controllers are already reasonably thin, but some orchestration can still be moved further into dedicated domain services so controllers stay even more focused on request handling and response shaping.
+- A repository layer can be introduced if the codebase grows further, especially in areas that become more query-heavy. For this assessment, I kept Eloquent usage direct in many places to avoid adding abstraction too early, but this is an area I would refine later.
+- Reusable domain values such as roles, alert types, severity levels, queue names, and some repeated response labels can be centralized further using enums/constants so those changes remain easier to manage from one place.
+- Response formatting is already standardized through a common API envelope, but I would take it a step further by using API Resources or dedicated response transformers more consistently for richer payloads like doctor summaries, alerts, and logs.
+
+These are areas I was already mindful of while building the project, but I kept them as future polish items so I could stay focused on completing the core requirements cleanly within the assessment timeline.
 
 ## 5. How AI/Codex was used
 
